@@ -1,4 +1,6 @@
-# AI Testing Platform
+# Shore_it_up_hackathon
+
+## AI Testing Platform
 
 A comprehensive platform for generating, analyzing, and comparing unit tests using multiple AI models. This platform integrates various AI agents to generate unit tests, analyze code coverage, and provide comparative analysis of different LLM models' performance.
 
@@ -102,4 +104,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - OpenAI for GPT-4 and Codex APIs
 - Anthropic for Claude API
 - Google for PaLM API
-- The Go and React communities for excellent frameworks and tools 
+- The Go and React communities for excellent frameworks and tools
