@@ -614,7 +614,7 @@ function TestGenerator() {
                   <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 2 }}>
                       <Typography variant="subtitle1" gutterBottom>
-                        Passed Tests ({analysis.passedTests.length})
+                        Passed Tests ({analysis.passedTestsCount || analysis.passedTests.length})
                       </Typography>
                       {analysis.passedTests.length > 0 ? (
                         <List dense>
@@ -639,7 +639,7 @@ function TestGenerator() {
                   <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 2 }}>
                       <Typography variant="subtitle1" gutterBottom>
-                        Failed Tests ({analysis.failedTests.length})
+                        Failed Tests ({analysis.failedTestsCount || analysis.failedTests.length})
                       </Typography>
                       {analysis.failedTests.length > 0 ? (
                         <List dense>
@@ -675,7 +675,7 @@ function TestGenerator() {
                     <Grid item xs={12}>
                       <Paper sx={{ p: 2 }}>
                         <Typography variant="subtitle1" gutterBottom>
-                          Skipped Tests ({analysis.skippedTests.length})
+                          Skipped Tests ({analysis.skippedTestsCount || analysis.skippedTests.length})
                         </Typography>
                         <List dense>
                           {analysis.skippedTests.map((test, index) => (
@@ -704,7 +704,7 @@ function TestGenerator() {
                           Total Execution Time:
                         </Typography>
                         <Typography variant="body1" fontWeight="bold">
-                          {analysis.executionTime}
+                          {analysis.executionTime || summary?.executionTime || 'N/A'}
                         </Typography>
                       </Box>
                       
@@ -716,8 +716,8 @@ function TestGenerator() {
                           <Box sx={{ width: '100%', mr: 1 }}>
                             <LinearProgress
                               variant="buffer"
-                              value={(analysis.passedTests.length / (analysis.passedTests.length + analysis.failedTests.length + (analysis.skippedTests?.length || 0))) * 100}
-                              valueBuffer={((analysis.passedTests.length + (analysis.skippedTests?.length || 0)) / (analysis.passedTests.length + analysis.failedTests.length + (analysis.skippedTests?.length || 0))) * 100}
+                              value={((analysis.passedTestsCount || analysis.passedTests.length) / (analysis.totalTestsCount || (analysis.passedTests.length + analysis.failedTests.length + (analysis.skippedTests?.length || 0)))) * 100}
+                              valueBuffer={(((analysis.passedTestsCount || analysis.passedTests.length) + (analysis.skippedTestsCount || analysis.skippedTests?.length || 0)) / (analysis.totalTestsCount || (analysis.passedTests.length + analysis.failedTests.length + (analysis.skippedTests?.length || 0)))) * 100}
                               sx={{
                                 height: 10,
                                 borderRadius: 5,
@@ -736,17 +736,17 @@ function TestGenerator() {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main', mr: 1 }} />
-                            <Typography variant="caption">Passed: {analysis.passedTests.length}</Typography>
+                            <Typography variant="caption">Passed: {analysis.passedTestsCount || analysis.passedTests.length}</Typography>
                           </Box>
                           {analysis.skippedTests && analysis.skippedTests.length > 0 && (
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'warning.main', mr: 1 }} />
-                              <Typography variant="caption">Skipped: {analysis.skippedTests.length}</Typography>
+                              <Typography variant="caption">Skipped: {analysis.skippedTestsCount || analysis.skippedTests.length}</Typography>
                             </Box>
                           )}
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'error.main', mr: 1 }} />
-                            <Typography variant="caption">Failed: {analysis.failedTests.length}</Typography>
+                            <Typography variant="caption">Failed: {analysis.failedTestsCount || analysis.failedTests.length}</Typography>
                           </Box>
                         </Box>
                       </Box>

@@ -176,7 +176,7 @@ app.post('/api/generate-tests', upload.single('file'), async (req, res) => {
       }
     }
   
-    const testResults = generateTestCases(
+    const testResults = await generateTestCases(
       req.file ? req.file.originalname : 'unknown.js',
       fileContent,
       req.body.model,
@@ -206,9 +206,19 @@ app.get('/api/test-results/:id', (req, res) => {
   if (fs.existsSync(resultsPath)) {
     try {
       const testResults = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+      
+      // Check if testCases exists and is an array before processing
+      if (!testResults.testCases || !Array.isArray(testResults.testCases)) {
+        return res.status(500).json({ 
+          error: 'Test generation failed', 
+          message: 'No test cases were generated. This may be due to an API error or configuration issue.' 
+        });
+      }
+      
       let fullTestCode = '';
       const imports = new Set();
       const mocks = new Set();
+      
       testResults.testCases.forEach(testCase => {
         const codeLines = testCase.code.split('\n');
         codeLines.forEach(line => {
@@ -279,83 +289,36 @@ app.get('/api/test-results/:id', (req, res) => {
         passedTests: testResults.testCases.filter(tc => tc.status === 'passed'),
         failedTests: testResults.testCases.filter(tc => tc.status === 'failed'),
         skippedTests: testResults.testCases.filter(tc => tc.status === 'skipped'),
+        // Use summary data for accurate counts
+        totalTestsCount: testResults.summary.total,
+        passedTestsCount: testResults.summary.passed,
+        failedTestsCount: testResults.summary.failed,
+        skippedTestsCount: testResults.summary.skipped,
+        executionTime: testResults.summary.executionTime,
         coverage: {
           lines: Math.floor(Math.random() * 20 + 80), // Simulated coverage
           branches: Math.floor(Math.random() * 30 + 70),
           functions: Math.floor(Math.random() * 15 + 85),
           statements: Math.floor(Math.random() * 25 + 75)
         },
-        executionTime: testResults.testCases.reduce((sum, tc) => 
-          sum + parseInt(tc.executionTime.replace('ms', '')), 0) + 'ms'
+        suggestions: [
+          'Consider adding more edge case tests',
+          'Test error handling scenarios',
+          'Add integration tests for complex workflows'
+        ]
       };
       
       res.json({
-        id,
-        status: 'completed',
+        ...testResults,
         fullTestCode,
-        analysis,
-        testCases: testResults.testCases,
-        summary: testResults.summary
+        analysis
       });
-    } catch (err) {
-      console.error('Error reading test results:', err);
+    } catch (error) {
+      console.error('Error reading test results:', error);
       res.status(500).json({ error: 'Failed to read test results' });
     }
   } else {
-    res.json({
-      id,
-      status: 'completed',
-      fullTestCode: `import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import Component from './Component';
-
-describe('Component', () => {
-  test('renders correctly', () => {
-    render(<Component />);
-    expect(screen.getByText('Sample text')).toBeInTheDocument();
-  });
-  
-  test('handles click events', () => {
-    render(<Component />);
-    const button = screen.getByRole('button');
-    fireEvent.click(button);
-    expect(screen.getByText('Clicked')).toBeInTheDocument();
-  });
-  
-  test('displays error state when API fails', () => {
-    render(<Component hasError={true} />);
-    expect(screen.getByText('Error occurred')).toBeInTheDocument();
-  });
-});`,
-      analysis: {
-        passedTests: [
-          { name: 'renders correctly', status: 'passed', executionTime: '15ms' },
-          { name: 'handles click events', status: 'passed', executionTime: '12ms' }
-        ],
-        failedTests: [
-          { name: 'displays error state when API fails', status: 'failed', error: 'Element not found', executionTime: '18ms' }
-        ],
-        skippedTests: [],
-        coverage: {
-          lines: 85,
-          branches: 70,
-          functions: 90,
-          statements: 82
-        },
-        executionTime: '45ms'
-      },
-      testCases: [
-        { name: 'Test 1', status: 'passed', code: 'test("renders correctly") {}', executionTime: '15ms' },
-        { name: 'Test 2', status: 'passed', code: 'test("handles click events") {}', executionTime: '12ms' },
-        { name: 'Test 3', status: 'failed', code: 'test("displays error state") {}', error: 'Element not found', executionTime: '18ms' }
-      ],
-      summary: {
-        total: 3,
-        passed: 2,
-        failed: 1,
-        skipped: 0
-      }
-    });
+    res.status(404).json({ error: 'Test results not found' });
   }
 });
 
@@ -398,41 +361,46 @@ app.get('/api/model-comparison', (req, res) => {
   });
 });
 
-app.post('/api/compare-models', upload.single('file'), (req, res) => {
-  console.log('Received file for comparison:', req.file);
-  console.log('Selected models:', req.body.models);
-  let fileContent = '';
-  if (req.file) {
-    try {
-      fileContent = fs.readFileSync(req.file.path, 'utf8');
-    } catch (err) {
-      console.error('Error reading file:', err);
+app.post('/api/compare-models', upload.single('file'), async (req, res) => {
+  try {
+    console.log('Received file for comparison:', req.file);
+    console.log('Selected models:', req.body.models);
+    let fileContent = '';
+    if (req.file) {
+      try {
+        fileContent = fs.readFileSync(req.file.path, 'utf8');
+      } catch (err) {
+        console.error('Error reading file:', err);
+      }
     }
+    const comparisonId = 'comparison-' + Math.floor(Math.random() * 1000);
+    const models = Array.isArray(req.body.models) ? req.body.models : [req.body.models];
+    
+    const modelResults = {};
+    for (const model of models) {
+      const testResults = await generateTestCases(
+        req.file ? req.file.originalname : 'unknown.js',
+        fileContent,
+        model
+      );
+      modelResults[model] = testResults;
+    }
+    
+    const resultsPath = path.join(uploadDir, `${comparisonId}-results.json`);
+    fs.writeFileSync(resultsPath, JSON.stringify(modelResults, null, 2));
+    
+    setTimeout(() => {
+      res.json({
+        message: 'Model comparison completed',
+        id: comparisonId,
+        fileName: req.file ? req.file.originalname : 'unknown',
+        models: Object.keys(modelResults)
+      });
+    }, 3000);
+  } catch (error) {
+    console.error('Error in model comparison:', error);
+    res.status(500).json({ error: 'Failed to compare models' });
   }
-  const comparisonId = 'comparison-' + Math.floor(Math.random() * 1000);
-  const models = Array.isArray(req.body.models) ? req.body.models : [req.body.models];
-  
-  const modelResults = {};
-  models.forEach(model => {
-    const testResults = generateTestCases(
-      req.file ? req.file.originalname : 'unknown.js',
-      fileContent,
-      model
-    );
-    modelResults[model] = testResults;
-  });
-  
-  const resultsPath = path.join(uploadDir, `${comparisonId}-results.json`);
-  fs.writeFileSync(resultsPath, JSON.stringify(modelResults, null, 2));
-  
-  setTimeout(() => {
-    res.json({
-      message: 'Model comparison completed',
-      id: comparisonId,
-      fileName: req.file ? req.file.originalname : 'unknown',
-      models: Object.keys(modelResults)
-    });
-  }, 3000);
 });
 
 app.get('/api/compare-results/:id', (req, res) => {

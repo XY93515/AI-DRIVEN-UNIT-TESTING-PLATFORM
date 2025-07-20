@@ -5,7 +5,7 @@ app.get('/api/test-github', async (req, res) => {
     
     // Try to access GitHub Enterprise API
     const enterpriseClient = axios.create({
-      baseURL: 'https://github.eagleview.com/api/v3',
+      baseURL: 'YOUR_GITHUB_URL_LINK',
       headers: {
         Accept: 'application/vnd.github.v3+json',
         ...(GITHUB_TOKEN && { Authorization: `token ${GITHUB_TOKEN}` })
@@ -226,7 +226,7 @@ app.post('/api/link-repository', async (req, res) => {
       
       // Create GitHub client for the specific domain
       const enterpriseClient = axios.create({
-        baseURL: 'https://github.eagleview.com/api/v3',
+        baseURL: 'GITHUB_URL_LINK',
         headers: {
           Accept: 'application/vnd.github.v3+json',
           ...(GITHUB_TOKEN && { Authorization: `token ${GITHUB_TOKEN}` })
@@ -411,7 +411,7 @@ npm start
     try {
       // Create GitHub client
       const enterpriseClient = axios.create({
-        baseURL: 'https://github.eagleview.com/api/v3',
+        baseURL: 'GITHUB_URL_LINK',
         headers: {
           Accept: 'application/vnd.github.v3+json',
           ...(GITHUB_TOKEN && { Authorization: `token ${GITHUB_TOKEN}` })

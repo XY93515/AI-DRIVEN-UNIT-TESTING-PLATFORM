@@ -214,8 +214,6 @@ async function generateTestCases(fileName, fileContent, model, repoContext = nul
   const id = `test-${timestamp}`;
   
   try {
-    let testCode = '';
-    
     // Build the prompt for the LLM
     const prompt = `Develop a comprehensive suite of unit tests for the attached file. Write multiple test methods that cover a wide range of scenarios, including edge cases, exception handling, data validation and with proper mocking.:\n\n${fileContent}\n\n`;
     
@@ -236,16 +234,30 @@ async function generateTestCases(fileName, fileContent, model, repoContext = nul
       }
     }
     
-    // Determine which LLM to use
-    if (model === 'gpt-4' || model === 'gpt-3.5-turbo' || model === 'gpt-4-turbo') {
-      // Use OpenAI API
-      testCode = await callOpenAIAPI(fullPrompt, model);
-    } else if (model === 'claude') {
-      // Use Anthropic API
-      testCode = await callAnthropicAPI(fullPrompt);
-    } else {
-      // Fallback to our custom test generation
-      console.log(`Model ${model} not supported for API calls, falling back to custom generation`);
+    let testCode;
+    try {
+      if (model === 'gpt-4' || model === 'gpt-3.5-turbo' || model === 'gpt-4-turbo') {
+        // Use OpenAI API
+        testCode = await callOpenAIAPI(fullPrompt, model);
+      } else if (model === 'claude') {
+        // Use Anthropic API
+        testCode = await callAnthropicAPI(fullPrompt);
+      } else {
+        // Fallback to our custom test generation
+        console.log(`Model ${model} not supported for API calls, falling back to custom generation`);
+        testCode = generateGenericTestForFile(fileName, fileContent, fileExt, detectedImports, repoContext);
+        testCode = addDetailedComments(testCode, fileExt);
+      }
+    } catch (apiError) {
+      console.error(`API call failed for model ${model}:`, apiError.message);
+      console.log('Falling back to custom test generation...');
+      testCode = generateGenericTestForFile(fileName, fileContent, fileExt, detectedImports, repoContext);
+      testCode = addDetailedComments(testCode, fileExt);
+    }
+    
+    // Ensure we always have valid test code
+    if (!testCode || testCode.trim() === '') {
+      console.log('No test code generated, creating basic fallback tests...');
       testCode = generateGenericTestForFile(fileName, fileContent, fileExt, detectedImports, repoContext);
       testCode = addDetailedComments(testCode, fileExt);
     }
@@ -376,7 +388,7 @@ async function callAnthropicAPI(prompt) {
     const response = await axios.post(
       'https://api.anthropic.com/v1/messages',
       {
-        model: 'claude-2',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 4000,
         messages: [
           {

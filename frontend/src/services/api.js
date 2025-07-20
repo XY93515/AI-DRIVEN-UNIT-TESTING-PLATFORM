@@ -96,7 +96,9 @@ export const comparisonService = {
   },
 };
 
-export default {
+const apiServices = {
   testService,
   comparisonService,
-}; 
+};
+
+export default apiServices; 
